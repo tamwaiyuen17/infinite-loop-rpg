@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101116">
+<title>無限輪迴｜主神試煉</title>
+<style>
+:root{--bg:#101116;--panel:#191b24;--panel2:#202330;--line:#343849;--text:#ececf2;--muted:#9da3b5;--gold:#d9b66f;--red:#d66c72;--green:#8ac6a0;--blue:#83a9db}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#303448 0,#101116 55%);color:var(--text);font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:#292d3b;color:var(--text);border-radius:9px;padding:10px 13px}button:hover{border-color:var(--gold);background:#34394a}button:disabled{opacity:.4;cursor:not-allowed}
+header{padding:20px max(18px,calc((100% - 1100px)/2));border-bottom:1px solid #ffffff16;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand{font-weight:800;letter-spacing:.12em;color:var(--gold);font-size:14px}.brand small{display:block;color:var(--muted);font-weight:400;letter-spacing:.04em}
+main{max-width:1100px;margin:auto;padding:22px 16px 60px}.hero{padding:24px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(120deg,#242838,#171922);margin-bottom:18px}
+.kicker{color:var(--gold);font-size:12px;letter-spacing:.18em}.hero h1{font-size:clamp(25px,5vw,39px);line-height:1.2;margin:7px 0}.hero p{color:var(--muted);margin:8px 0 0}
+.layout{display:grid;grid-template-columns:300px 1fr;gap:16px}.panel{background:#191b24eF;border:1px solid var(--line);border-radius:14px;padding:17px;margin-bottom:15px}.panel h2,.panel h3{margin:0 0 12px;font-size:16px}.muted{color:var(--muted)}.gold{color:var(--gold)}.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{background:var(--panel2);padding:9px;border-radius:9px}.stat b{display:block;font-size:19px}.stat span{font-size:12px;color:var(--muted)}
+.meter{height:7px;background:#303443;border-radius:8px;overflow:hidden;margin-top:5px}.meter i{display:block;height:100%;background:var(--green)}.meter.hp i{background:var(--red)}.meter.mp i{background:var(--blue)}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}.tabs button.active{border-color:var(--gold);color:var(--gold);background:#393326}
+.scene{min-height:235px}.scene h2{font-size:21px}.story{white-space:pre-line;color:#d9dbe4}.log{max-height:180px;overflow:auto;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:9px;margin-top:13px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}.choice{text-align:left;min-height:65px}.choice b{display:block;color:var(--gold);font-size:13px}.choice span{font-size:13px;color:#c3c7d4}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.danger{border-color:#79454b;color:#f0a0a4}.primary{background:#57482b;border-color:#927744}.pill{display:inline-block;border:1px solid var(--line);border-radius:30px;padding:2px 9px;font-size:11px;color:var(--muted);margin:2px}
+input{width:100%;background:#101219;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px;margin:6px 0 10px}.field{margin:8px 0}.field label{font-size:12px;color:var(--muted)}
+.overlay{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:16px;z-index:5}.modal{max-width:470px;width:100%;background:#1b1e28;border:1px solid var(--line);border-radius:15px;padding:22px}.hidden{display:none!important}
+footer{text-align:center;color:#777e91;font-size:12px;padding:25px}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.choices{grid-template-columns:1fr}.hero{padding:19px}header{padding:14px 16px}.scene{min-height:0}}
+</style></head>
+<body>
+<header><div class="brand">INFINITE LOOP <small>無限輪迴｜主神試煉</small></div><div><span class="pill">單機版</span><span class="pill">零 Token</span><button id="resetTop">重新開始</button></div></header>
+<main>
+<section class="hero"><div class="kicker">ENDLESS TRIAL PROTOCOL</div><h1>每一次選擇，都可能是最後一次。</h1><p>一個以無限流、生存恐怖與角色成長為核心的原創單機 RPG 原型。無需帳戶、API 或 Token；進度保存在此裝置的瀏覽器。</p></section>
+<div class="layout">
+<aside>
+ <section class="panel"><h2>輪迴者資料</h2><div id="identity"></div><div class="stats" id="stats"></div><div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>生命值</span><b id="hpText"></b></div><div class="meter hp"><i id="hpBar"></i></div><div style="display:flex;justify-content:space-between;font-size:12px;margin-top:8px"><span>精神力</span><b id="mpText"></b></div><div class="meter mp"><i id="mpBar"></i></div></div></section>
+ <section class="panel"><h3>資源</h3><div id="resources"></div></section>
+ <section class="panel"><h3>隊伍與裝備</h3><div id="equipment" class="muted"></div></section>
+</aside>
+<section>
+ <nav class="tabs"><button class="active" data-tab="game">當前場景</button><button data-tab="character">角色檔案</button><button data-tab="rules">遊戲規則</button></nav>
+ <div id="gameTab">
+  <section class="panel scene"><div class="kicker" id="sceneTag">主神空間</div><h2 id="sceneTitle">主神空間：休整期</h2><div class="story" id="story"></div><div class="choices" id="choices"></div><div class="actions" id="freeActions"></div><div class="log" id="log"></div></section>
+ </div>
+ <div id="characterTab" class="hidden"><section class="panel"><h2>角色檔案</h2><div id="characterDetails"></div><h3 style="margin-top:18px">已獲得能力</h3><div id="skills"></div></section></div>
+ <div id="rulesTab" class="hidden"><section class="panel"><h2>判定規則</h2><p>行動結果由角色能力、難度、狀態及隨機骰值決定。成功不保證零代價，失敗亦可能帶來情報或其他後果。</p><ul><li>屬性：力量、敏捷、體質、精神、感知。</li><li>檢定：擲 1D20 + 對應屬性修正，達到難度值即成功。</li><li>戰鬥：命中、傷害、敵方反擊均由規則引擎計算。</li><li>死亡：生命值歸零即本輪試煉失敗；可選擇重新開始。</li><li>存檔：自動保存於本機瀏覽器 localStorage。</li></ul><p class="muted">本原型採用原創人物、事件及場景，不複製小說或參考網站的專有劇情文本。</p></section></div>
+</section></div>
+</main><footer>INFINITE LOOP PROTOTYPE · 本地存檔 · 不連接外部 AI 服務</footer>
+<div id="modal" class="overlay"><div class="modal"><div class="kicker">NEW RECRUIT</div><h2>建立你的輪迴者</h2><p class="muted">選擇一個名字，系統會生成初始屬性與天賦。</p><div class="field"><label>輪迴者代號</label><input id="nameInput" maxlength="14" placeholder="例如：HOAX" value="無名者"></div><div class="field"><label>初始專長</label><select id="origin" style="width:100%;padding:10px;background:#101219;color:white;border:1px solid #343849;border-radius:8px"><option value="survivor">求生本能｜體質 +2</option><option value="fighter">近身戰士｜力量 +2</option><option value="scout">偵察者｜敏捷 +2</option><option value="medium">感應者｜精神 +2</option></select></div><button class="primary" style="width:100%;margin-top:12px" id="create">進入主神空間</button></div></div>
+<script>
+const $=id=>document.getElementById(id);
+const base={name:"無名者",origin:"survivor",stats:{str:10,dex:10,con:10,int:10,wis:10},hp:30,maxHp:30,mp:20,maxMp:20,points:0,credits:500,mission:0,phase:"hub",enemy:null,inventory:["急救包 ×1","生鏽短刀"],skills:["基礎求生"],team:[],flags:{},log:[]};
+let S=load();
+function load(){try{return JSON.parse(localStorage.getItem("infiniteLoopSave"))||null}catch(e){return null}}
+function save(){localStorage.setItem("infiniteLoopSave",JSON.stringify(S))}
+function log(t){S.log.unshift("["+new Date().toLocaleTimeString("zh-HK",{hour:"2-digit",minute:"2-digit"})+"] "+t);S.log=S.log.slice(0,18);save()}
+function roll(){return Math.floor(Math.random()*20)+1}
+function mod(v){return Math.floor((v-10)/2)}
+function check(stat,dc){let r=roll(),total=r+mod(S.stats[stat]);return {r,total,ok:total>=dc}}
+function start(name,origin){S=structuredClone(base);S.name=name||"無名者";S.origin=origin;let k={survivor:["con",2],fighter:["str",2],scout:["dex",2],medium:["int",2]}[origin];S.stats[k[0]]+=k[1];S.maxHp=30+mod(S.stats.con)*2;S.hp=S.maxHp;S.maxMp=20+mod(S.stats.int)*2;S.mp=S.maxMp;S.phase="hub";S.log=[];log("輪迴者 "+S.name+" 已建立。主神空間連線完成。");$("modal").classList.add("hidden");render()}
+function scene(tag,title,story,choices){$("sceneTag").textContent=tag;$("sceneTitle").textContent=title;$("story").textContent=story;$("choices").innerHTML="";choices.forEach((c,i)=>{let b=document.createElement("button");b.className="choice";b.innerHTML="<b>"+c[0]+"</b><span>"+c[1]+"</span>";b.onclick=c[2];$("choices").appendChild(b)})}
+function hub(){S.phase="hub";S.enemy=null;scene("主神空間 · 休整期","主神空間：休整期","白色光球懸浮在無邊無際的廣場上。四周沒有出口，只有冷冰冰的提示音在腦海響起：\n\n「輪迴者，下一場試煉即將開始。請在倒數結束前完成準備。」\n\n你目前有 "+S.credits+" 點輪迴點數。",[
+["A｜檢查自身狀態","查看屬性、能力與目前傷勢",()=>{log("檢查自身狀態。");alert("生命 "+S.hp+"/"+S.maxHp+"｜精神 "+S.mp+"/"+S.maxMp+"｜輪迴點數 "+S.credits)}],
+["B｜兌換急救包","花費 100 點，恢復 15 點生命值",()=>{if(S.credits<100)return alert("輪迴點數不足");S.credits-=100;S.hp=Math.min(S.maxHp,S.hp+15);log("兌換急救包，生命值恢復。");render()}],
+["C｜進入下一場試煉","未知城市 · 零時封鎖線",()=>{S.phase="mission";S.mission=1;log("進入試煉：零時封鎖線。");missionStart()}],
+["D｜整理裝備","查看背包內容",()=>alert("背包：\n"+S.inventory.join("\n"))]
+])}
+function missionStart(){scene("第一場試煉 · 生存","零時封鎖線","你在一條陌生的地下通道醒來。緊急燈每隔數秒閃爍一次，遠處傳來金屬拖行的聲音。腕上的電子屏顯示：\n\n【生存任務】在封鎖區內存活，並於 30 分鐘內抵達地面出口。\n【額外情報】通道內可能存在其他生還者。\n\n你身上只有一把生鏽短刀、一個急救包，以及不完整的地圖。",[
+["A｜沿牆前進","保持安靜，觀察地面與牆壁痕跡",()=>explore()],
+["B｜呼叫其他生還者","可能獲得同伴，也可能暴露位置",()=>callSurvivor()],
+["C｜檢查附近控制箱","嘗試恢復部分照明與地圖資訊",()=>controlBox()],
+["D｜直接向出口移動","節省時間，但可能撞上未知威脅",()=>advance()]
+])}
+function explore(){let r=check("wis",12);log("沿牆搜索：D20 "+r.r+" + 感知修正 "+mod(S.stats.wis)+" = "+r.total+"（難度 12）");if(r.ok){S.flags.clue=true;scene("第一場試煉","發現拖行痕跡","你發現地面有一串新鮮刮痕，旁邊還有一張沾血的通行卡。痕跡通往左側維修通道。你取得了有用情報。",[
+["A｜沿維修通道前進","可能避開正面威脅",()=>{S.flags.route=true;log("取得維修通道情報。");encounter()}],
+["B｜保留通行卡","稍後可能用於控制門",()=>{S.inventory.push("沾血通行卡");log("取得沾血通行卡。");missionStart()}]
+])}else{S.hp=Math.max(1,S.hp-4);log("搜索時被碎片割傷，生命 -4。");scene("第一場試煉","搜索受阻","你踩到散落的玻璃，聲響在通道中迴盪。你受了輕傷，遠處的拖行聲突然停下。",[
+["A｜立即躲藏","避免被聲音吸引過來的東西發現",()=>hide()],
+["B｜拔刀戒備","準備面對接近的威脅",()=>encounter()]
+])}save();renderSide()}
+function callSurvivor(){let r=check("int",13);log("呼叫生還者：D20 "+r.r+" + 精神修正 "+mod(S.stats.int)+" = "+r.total);if(r.ok){S.team.push("林澄｜臨時同行者");S.flags.ally=true;scene("第一場試煉","有人回應","通訊器傳來一個年輕人的聲音：「我在控制室附近，這裡有一道門卡住了。你能過來嗎？」對方似乎受了傷。",[
+["A｜前往控制室","嘗試救援並建立合作",()=>{S.flags.rescued=true;log("與林澄會合。");controlBox()}],
+["B｜告知對方保持安靜","先確保自己安全",()=>{log("暫不與對方會合。");missionStart()}]
+])}else{S.hp=Math.max(1,S.hp-3);scene("第一場試煉","回應你的不是人聲","通訊器傳來三下敲擊，接著是一段急促的喘息。某種東西似乎已經注意到你的位置。",[
+["A｜關閉通訊器並躲藏","降低被發現的機會",()=>hide()],
+["B｜準備戰鬥","不再等待",()=>encounter()]
+])}save();renderSide()}
+function controlBox(){let r=check("int",12);log("檢查控制箱：D20 "+r.r+" + 精神修正 "+mod(S.stats.int)+" = "+r.total);if(r.ok){S.flags.power=true;scene("第一場試煉","備用電源恢復","你成功接通備用電源。部分照明亮起，地圖顯示出口在東側，但出口前有一個移動中的熱源。",[
+["A｜利用地圖繞路","走維修通道避開熱源",()=>{S.flags.route=true;encounter()}],
+["B｜趁燈光恢復快速通過","直接接近出口",()=>advance()]
+])}else{scene("第一場試煉","控制箱短路","火花突然爆開，控制箱發出刺耳警報。你必須立刻離開這裡。",[
+["A｜撤退","回到通道",()=>missionStart()],
+["B｜警報引來了東西","拔刀迎戰",()=>encounter()]
+])}}
+function advance(){if(!S.flags.route&&!S.flags.power){log("未取得路線情報便向出口前進。");encounter()}else{log("依照已取得的情報向出口前進。");encounter()}}
+function hide(){let r=check("dex",12);log("躲藏判定："+r.total+" / DC12");if(r.ok){scene("第一場試煉","威脅經過","你貼在管線後方，屏住呼吸。黑暗中的東西拖著沉重步伐經過，沒有發現你。",[
+["A｜趁機前往出口","離開這條通道",()=>victory()],
+["B｜跟蹤它的行動","尋找弱點與其他路線",()=>{S.flags.clue=true;encounter()}]
+])}else{S.hp-=5;log("躲藏失敗，受到 5 點傷害。");encounter()}}
+function encounter(){S.phase="combat";S.enemy={name:"異化獵行者",hp:18,maxHp:18,atk:5};combat()}
+function combat(){if(S.enemy.hp<=0){S.enemy=null;S.phase="mission";S.credits+=180;S.points+=1;log("擊敗異化獵行者，獲得 180 點輪迴點數及 1 點進化點。");scene("第一場試煉","通道暫時安靜","怪物倒在地上，黑色液體沿地面蔓延。前方的出口指示燈重新亮起。",[
+["A｜前往出口","完成本次生存任務",()=>victory()],
+["B｜搜索怪物殘骸","可能找到有用物資",()=>{S.inventory.push("異化組織樣本");log("取得異化組織樣本。");victory()}]
+]);save();render();return}
+scene("第一場試煉 · 戰鬥","遭遇：異化獵行者","一個四肢比例異常的身影從通風口爬出。它的頭部不斷抽動，正朝你的方向逼近。\n\n敵方生命值："+S.enemy.hp+"/"+S.enemy.maxHp,[
+["A｜短刀攻擊","力量檢定，造成傷害",()=>attack()],
+["B｜閃避並拉開距離","敏捷檢定，成功可避開反擊",()=>dodge()],
+["C｜觀察弱點","感知檢定，成功可獲得下一擊加成",()=>weakness()],
+["D｜使用急救包","恢復 12 點生命值（限一次）",()=>heal()]
+]);$("story").insertAdjacentHTML("beforeend",'<p class="muted">敵方生命：'+S.enemy.hp+'/'+S.enemy.maxHp+'</p>');}
+function enemyTurn(){if(!S.enemy)return;let dmg=Math.max(1,S.enemy.atk-Math.floor(S.stats.con/5));S.hp-=dmg;log("異化獵行者反擊，受到 "+dmg+" 點傷害。");if(S.hp<=0){S.hp=0;S.phase="dead";scene("試煉失敗","輪迴者生命訊號中斷","你的視野逐漸變黑。主神空間的提示音最後一次響起：「生命體徵消失。本次試煉結束。」\n\n本原型允許重新開始新一輪。",[
+["重新開始","建立新的輪迴者",()=>{$("modal").classList.remove("hidden")}]
+])}else combat();save();renderSide()}
+function attack(){let r=check("str",11);let dmg=0;if(r.ok){dmg=5+Math.max(0,mod(S.stats.str))+Math.floor(Math.random()*4);if(S.flags.weak)dmg+=4;S.enemy.hp-=dmg;log("短刀命中，造成 "+dmg+" 點傷害。")}else log("攻擊落空。");S.flags.weak=false;if(S.enemy.hp<=0)combat();else enemyTurn()}
+function dodge(){let r=check("dex",12);log("閃避判定："+r.total+" / DC12");if(r.ok){scene("戰鬥","成功閃避","你側身避開撲擊，敵人撞上牆面，短暫失去平衡。",[
+["A｜趁機反擊","獲得額外傷害",()=>{S.enemy.hp-=7;log("趁敵人失衡造成 7 點傷害。");combat()}],
+["B｜撤向出口","嘗試脫離戰鬥",()=>victory()]
+])}else enemyTurn()}
+function weakness(){let r=check("wis",12);if(r.ok){S.flags.weak=true;log("發現敵人關節弱點，下一次攻擊額外造成 4 點傷害。");scene("戰鬥","找到弱點","你注意到它右側肩關節有舊傷，動作會在撲擊前出現短暫停頓。",[
+["A｜攻擊弱點","下一次攻擊額外傷害",()=>attack()],
+["B｜拉開距離","重新調整位置",()=>dodge()]
+])}else{log("未能判斷敵人的弱點。");enemyTurn()}}
+function heal(){if(S.flags.healed){alert("本場試煉已使用急救包。");return}S.flags.healed=true;S.hp=Math.min(S.maxHp,S.hp+12);S.inventory=S.inventory.filter(x=>x!=="急救包 ×1");log("使用急救包，恢復 12 點生命。");enemyTurn()}
+function victory(){S.phase="hub";S.enemy=null;S.hp=Math.max(1,S.hp);S.credits+=250;S.points+=2;S.mission=1;S.flags={};log("完成第一場試煉，獲得 250 點輪迴點數及 2 點進化點。");scene("試煉完成","生還者確認","白光吞沒了整條通道。再次睜開眼時，你已回到主神空間。\n\n【任務完成】零時封鎖線\n【獎勵】250 輪迴點數、2 進化點\n\n你活下來了，但這只是第一場試煉。",[
+["A｜返回主神空間","整理狀態及準備下一場試煉",()=>hub()],
+["B｜查看角色檔案","檢視這次成長",()=>{document.querySelector('[data-tab="character"]').click()}]
+]);save();render()}
+function renderSide(){ $("identity").innerHTML="<b>"+esc(S.name)+"</b><div class='muted' style='font-size:12px'>"+originName(S.origin)+" · 第 "+(S.mission+1)+" 次輪迴</div>";$("stats").innerHTML=[["力量","str"],["敏捷","dex"],["體質","con"],["精神","int"],["感知","wis"]].map(([n,k])=>'<div class="stat"><span>'+n+'</span><b>'+S.stats[k]+'</b></div>').join("");$("hpText").textContent=S.hp+"/"+S.maxHp;$("mpText").textContent=S.mp+"/"+S.maxMp;$("hpBar").style.width=(S.hp/S.maxHp*100)+"%";$("mpBar").style.width=(S.mp/S.maxMp*100)+"%";$("resources").innerHTML="輪迴點數：<b class='gold'>"+S.credits+"</b><br>進化點：<b>"+S.points+"</b>";$("equipment").textContent="隊伍："+(S.team.length?S.team.join("、"):"暫無同行者")+"\n裝備："+S.inventory.join("、");$("log").innerHTML="<b>行動紀錄</b><br>"+S.log.map(esc).join("<br>");$("characterDetails").innerHTML="代號："+esc(S.name)+"<br>專長："+originName(S.origin)+"<br>輪迴點數："+S.credits+"<br>進化點："+S.points+"<br>完成試煉："+S.mission;$("skills").innerHTML=S.skills.map(x=>'<span class="pill">'+esc(x)+'</span>').join("")}
+function render(){renderSide();if(S.phase==="hub")hub();else if(S.phase==="mission"&&S.mission===1&&$("sceneTitle").textContent==="主神空間：休整期")missionStart();else if(S.phase==="combat"&&S.enemy)combat();else if(S.phase==="dead"){}save()}
+function originName(o){return {survivor:"求生本能",fighter:"近身戰士",scout:"偵察者",medium:"感應者"}[o]||o}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));["game","character","rules"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==b.dataset.tab))});
+$("create").onclick=()=>start($("nameInput").value.trim(),$("origin").value);
+function reset(){if(confirm("確定刪除本機存檔並重新開始？")){localStorage.removeItem("infiniteLoopSave");S=null;$("modal").classList.remove("hidden");}}
+$("resetTop").onclick=reset;
+if(!S){$("modal").classList.remove("hidden")}else{ $("modal").classList.add("hidden");render();if(S.phase==="hub"&&S.mission===0)hub();else if(S.phase==="mission")missionStart();else if(S.phase==="combat")combat()}
+</script></body></html>
