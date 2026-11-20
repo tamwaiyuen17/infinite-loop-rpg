@@ -1,1 +1,299 @@
-PLACEHOLDER
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>無限輪迴｜主神試煉 V0.4</title>
+<style>
+:root{--bg:#101116;--panel:#191b24;--text:#ececf2;--muted:#9da3b5;--gold:#d9b66f;--red:#d66c72;--green:#8ac6a0;--blue:#83a9db}
+body{margin:0;background:#101116;color:var(--text);font:15px/1.6 -apple-system,sans-serif;padding:12px}
+.panel{background:var(--panel);border:1px solid #343849;border-radius:12px;padding:16px;margin:12px 0}
+h1,h2,h3{color:var(--gold);margin:0 0 12px}
+button{background:#292d3b;color:white;border:1px solid #343849;border-radius:8px;padding:8px 12px;margin:4px;cursor:pointer;font-size:13px}
+button:hover{border-color:var(--gold);background:#34394a}
+button:disabled{opacity:.5;cursor:not-allowed}
+.stat{display:inline-block;margin:6px;padding:8px 12px;background:#202330;border-radius:8px;min-width:80px;text-align:center}
+.stat b{display:block;font-size:18px}
+.log{max-height:180px;overflow:auto;background:#0a0b10;padding:10px;border-radius:8px;font-size:12px;color:var(--muted)}
+.skill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;max-height:400px;overflow:auto}
+.skill-card{background:#202330;padding:10px;border-radius:8px;border:1px solid #343849}
+.skill-card.S{border-color:#d9b66f}
+.skill-card.A{border-color:#d66c72}
+.skill-card.B{border-color:#83a9db}
+.skill-card.C{border-color:#8ac6a0}
+.skill-card.D{border-color:#9da3b5}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button.active{border-color:var(--gold);color:var(--gold);background:#393326}
+.filter{margin:8px 0}
+.filter select, .filter input{background:#101219;color:white;border:1px solid #343849;border-radius:6px;padding:6px}
+</style>
+</head>
+<body>
+<h1>無限輪迴：主神試煉 V0.4</h1>
+<div class="panel">
+  <h2>輪迴者資料</h2>
+  <div id="playerInfo"></div>
+  <div id="stats"></div>
+  <div id="resources"></div>
+</div>
+<div class="panel">
+  <h2>主神空間</h2>
+  <div id="actions"></div>
+  <div class="log" id="log"></div>
+</div>
+<div class="panel">
+  <div class="tabs">
+    <button class="active" data-tab="skills">技能兌換 (100)</button>
+    <button data-tab="blood">血統系統</button>
+    <button data-tab="gene">基因鎖</button>
+  </div>
+  <div id="skillsTab">
+    <div class="filter">
+      <select id="gradeFilter"><option value="">全部等級</option><option>S</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
+      <input id="search" placeholder="搜尋技能名稱..." style="margin-left:8px">
+    </div>
+    <div class="skill-grid" id="skillGrid"></div>
+  </div>
+  <div id="bloodTab" style="display:none">
+    <div id="bloodlines"></div>
+  </div>
+  <div id="geneTab" style="display:none">
+    <div id="geneActions"></div>
+  </div>
+</div>
+<script>
+const saveKey = 'infiniteLoopV04';
+let S = JSON.parse(localStorage.getItem(saveKey)) || {
+  name: '無名者',
+  stats: {str:10, dex:10, con:10, int:10, wis:10},
+  hp:30, maxHp:30, mp:20, maxMp:20,
+  points: 2000,
+  geneLock: 0,
+  bloodline: null,
+  skills: [],
+  inventory: [],
+  log: ['歡迎來到無限輪迴 V0.4。已載入 100 個初始技能。']
+};
+
+const SKILLS = [
+{"id":"D01","name":"基礎體能強化","grade":"D","cost":200,"effect":"力量+1，體質+1"},
+{"id":"D02","name":"敏捷提升","grade":"D","cost":230,"effect":"敏捷+2"},
+{"id":"D03","name":"感知敏銳","grade":"D","cost":260,"effect":"感知檢定+2"},
+{"id":"D04","name":"體力恢復加速","grade":"D","cost":290,"effect":"每回合額外回復1點生命"},
+{"id":"D05","name":"基礎近戰","grade":"D","cost":320,"effect":"近戰傷害+1"},
+{"id":"D06","name":"簡易急救","grade":"D","cost":350,"effect":"使用治療時效果+20%"},
+{"id":"D07","name":"夜視入門","grade":"D","cost":380,"effect":"黑暗中感知不減"},
+{"id":"D08","name":"抗寒入門","grade":"D","cost":410,"effect":"寒冷傷害-30%"},
+{"id":"D09","name":"抗熱入門","grade":"D","cost":440,"effect":"火焰傷害-20%"},
+{"id":"D10","name":"基礎潛行","grade":"D","cost":470,"effect":"潛行檢定+2"},
+{"id":"D11","name":"力量微增","grade":"D","cost":500,"effect":"力量+1"},
+{"id":"D12","name":"反應訓練","grade":"D","cost":530,"effect":"先攻+1"},
+{"id":"D13","name":"精神集中","grade":"D","cost":560,"effect":"精神檢定+1"},
+{"id":"D14","name":"傷口止血","grade":"D","cost":590,"effect":"流血傷害-50%"},
+{"id":"D15","name":"基礎射擊","grade":"D","cost":620,"effect":"遠程命中+1"},
+{"id":"D16","name":"耐力提升","grade":"D","cost":650,"effect":"疲勞抵抗+20%"},
+{"id":"D17","name":"平衡感強化","grade":"D","cost":680,"effect":"倒地後可立即起身"},
+{"id":"D18","name":"聽覺強化","grade":"D","cost":710,"effect":"聽覺感知範圍加倍"},
+{"id":"D19","name":"視覺強化","grade":"D","cost":740,"effect":"視覺範圍+30%"},
+{"id":"D20","name":"基礎格擋","grade":"D","cost":770,"effect":"格擋成功率+15%"},
+{"id":"D21","name":"快速奔跑","grade":"D","cost":800,"effect":"移動速度+10%"},
+{"id":"D22","name":"跳躍強化","grade":"D","cost":830,"effect":"跳躍高度+50%"},
+{"id":"D23","name":"握力提升","grade":"D","cost":860,"effect":"攀爬與抓取+2"},
+{"id":"D24","name":"基礎抗毒","grade":"D","cost":890,"effect":"毒素傷害-25%"},
+{"id":"D25","name":"疼痛忍耐","grade":"D","cost":920,"effect":"生命低於30%時不減益"},
+{"id":"D26","name":"基礎攀爬","grade":"D","cost":950,"effect":"攀爬檢定+3"},
+{"id":"D27","name":"定向能力","grade":"D","cost":980,"effect":"迷路機率大幅降低"},
+{"id":"D28","name":"基礎偵察","grade":"D","cost":1010,"effect":"發現隱藏物+2"},
+{"id":"D29","name":"簡單偽裝","grade":"D","cost":1040,"effect":"偽裝檢定+2"},
+{"id":"D30","name":"基礎意志","grade":"D","cost":1070,"effect":"精神控制抗性+20%"},
+{"id":"C01","name":"中級體能","grade":"C","cost":1200,"effect":"力量+2，敏捷+2，體質+2"},
+{"id":"C02","name":"精準射擊","grade":"C","cost":1280,"effect":"遠程命中+3，暴擊+10%"},
+{"id":"C03","name":"戰術潛行","grade":"C","cost":1360,"effect":"潛行+3，背後攻擊+30%"},
+{"id":"C04","name":"能量護盾初階","grade":"C","cost":1440,"effect":"主動：展開護盾吸收15傷害"},
+{"id":"C05","name":"火焰抗性","grade":"C","cost":1520,"effect":"火焰傷害-40%"},
+{"id":"C06","name":"寒冷抗性","grade":"C","cost":1600,"effect":"寒冷傷害-40%"},
+{"id":"C07","name":"毒素抗性","grade":"C","cost":1680,"effect":"毒素傷害-50%，中毒時間減半"},
+{"id":"C08","name":"快速治療","grade":"C","cost":1760,"effect":"治療效果+40%，可自癒小傷"},
+{"id":"C09","name":"強化感知","grade":"C","cost":1840,"effect":"所有感知檢定+3"},
+{"id":"C10","name":"近戰精通","grade":"C","cost":1920,"effect":"近戰傷害+3，命中+2"},
+{"id":"C11","name":"遠程精通","grade":"C","cost":2000,"effect":"遠程傷害+2，射程+20%"},
+{"id":"C12","name":"精神防護","grade":"C","cost":2080,"effect":"精神攻擊抗性+40%"},
+{"id":"C13","name":"基礎元素操控","grade":"C","cost":2160,"effect":"可操控小型火焰或水"},
+{"id":"C14","name":"簡易隱形","grade":"C","cost":2240,"effect":"主動：1回合隱形"},
+{"id":"C15","name":"強化閃避","grade":"C","cost":2320,"effect":"閃避檢定+3"},
+{"id":"C16","name":"基礎飛行感","grade":"C","cost":2400,"effect":"短距離滑翔"},
+{"id":"C17","name":"武器專精","grade":"C","cost":2480,"effect":"指定武器類型傷害+25%"},
+{"id":"C18","name":"防禦姿態","grade":"C","cost":2560,"effect":"防禦時減傷+30%"},
+{"id":"C19","name":"團隊指揮初階","grade":"C","cost":2640,"effect":"同伴檢定+1"},
+{"id":"C20","name":"情報分析","grade":"C","cost":2720,"effect":"可看穿敵人部分弱點"},
+{"id":"C21","name":"基礎咒力運用","grade":"C","cost":2800,"effect":"咒力附魔攻擊"},
+{"id":"C22","name":"簡易領域","grade":"C","cost":2880,"effect":"展開簡易領域抵禦攻擊"},
+{"id":"C23","name":"速度爆發","grade":"C","cost":2960,"effect":"主動：2回合速度大幅提升"},
+{"id":"C24","name":"力量爆發","grade":"C","cost":3040,"effect":"主動：1回合力量+5"},
+{"id":"C25","name":"體質強化","grade":"C","cost":3120,"effect":"最大生命+20"},
+{"id":"C26","name":"精神爆發","grade":"C","cost":3200,"effect":"精神檢定+4"},
+{"id":"C27","name":"基礎召喚","grade":"C","cost":3280,"effect":"可召喚小型式神或生物"},
+{"id":"C28","name":"簡易幻術","grade":"C","cost":3360,"effect":"製造小型幻象"},
+{"id":"C29","name":"強化意志","grade":"C","cost":3440,"effect":"精神控制完全免疫一次"},
+{"id":"C30","name":"戰鬥本能","grade":"C","cost":3520,"effect":"戰鬥中所有檢定+1"},
+{"id":"B01","name":"高級體能","grade":"B","cost":4500,"effect":"全屬性+3"},
+{"id":"B02","name":"無下限初階","grade":"B","cost":4700,"effect":"被動減速接近攻擊"},
+{"id":"B03","name":"蝙蛛強化","grade":"B","cost":4900,"effect":"攀爬+蛛絲+閃避+3"},
+{"id":"B04","name":"再生因子","grade":"B","cost":5100,"effect":"每回合回復5%生命"},
+{"id":"B05","name":"電磁操控","grade":"B","cost":5300,"effect":"控制金屬物品"},
+{"id":"B06","name":"龍之吐息","grade":"B","cost":5500,"effect":"噴吐火焰範圍攻擊"},
+{"id":"B07","name":"神速力初階","grade":"B","cost":5700,"effect":"高速移動+時間微調"},
+{"id":"B08","name":"氪星強化","grade":"B","cost":5900,"effect":"力量大幅提升+熱視線"},
+{"id":"B09","name":"領域展開初階","grade":"B","cost":6100,"effect":"展開簡易領域展開"},
+{"id":"B10","name":"高階潛行","grade":"B","cost":6300,"effect":"潛行+5，可短暫完全隱形"},
+{"id":"B11","name":"能量護盾","grade":"B","cost":6500,"effect":"強力護盾吸收50傷害"},
+{"id":"B12","name":"元素掌控","grade":"B","cost":6700,"effect":"中級元素操控"},
+{"id":"B13","name":"時間微調","grade":"B","cost":6900,"effect":"短時間減緩周圍時間"},
+{"id":"B14","name":"空間感知","grade":"B","cost":7100,"effect":"感知空間異常"},
+{"id":"B15","name":"高階治療","grade":"B","cost":7300,"effect":"可治癒重傷"},
+{"id":"B16","name":"戰鬥預判","grade":"B","cost":7500,"effect":"預判敵人行動"},
+{"id":"B17","name":"強化變身","grade":"B","cost":7700,"effect":"變身能力強化"},
+{"id":"B18","name":"式神召喚","grade":"B","cost":7900,"effect":"可召喚中階式神"},
+{"id":"B19","name":"精神控制初階","grade":"B","cost":8100,"effect":"短暫控制弱小敵人"},
+{"id":"B20","name":"規則微調","grade":"B","cost":8300,"effect":"小範圍微調物理規則"},
+{"id":"A01","name":"無下限完全","grade":"A","cost":12000,"effect":"接近攻擊幾乎無效"},
+{"id":"A02","name":"伏魔御廚子","grade":"A","cost":13000,"effect":"強力範圍斬擊"},
+{"id":"A03","name":"超級賽亞人","grade":"A","cost":14000,"effect":"變身大幅提升力量"},
+{"id":"A04","name":"神速力完全","grade":"A","cost":15000,"effect":"接近光速移動"},
+{"id":"A05","name":"氪星完全體","grade":"A","cost":16000,"effect":"飛行+超級力量+高抗性"},
+{"id":"A06","name":"完整領域","grade":"A","cost":17000,"effect":"展開完整領域"},
+{"id":"A07","name":"現實微調","grade":"A","cost":18000,"effect":"小範圍改變現實"},
+{"id":"A08","name":"高階再生","grade":"A","cost":19000,"effect":"極強再生能力"},
+{"id":"A09","name":"龍皇之力","grade":"A","cost":20000,"effect":"真龍級能力"},
+{"id":"A10","name":"主神眷顧初階","grade":"A","cost":21000,"effect":"主神空間優惠"},
+{"id":"S01","name":"無量空處","grade":"S","cost":35000,"effect":"展開無量空處領域"},
+{"id":"S02","name":"兩面宿傺級","grade":"S","cost":38000,"effect":"宿傺級斬擊與領域"},
+{"id":"S03","name":"賽亞人之神","grade":"S","cost":41000,"effect":"神級賽亞人變身"},
+{"id":"S04","name":"神速力本源","grade":"S","cost":44000,"effect":"神速力本源級時間操控"},
+{"id":"S05","name":"氪星神級","grade":"S","cost":47000,"effect":"接近原作超人級"},
+{"id":"S06","name":"完全領域展開","grade":"S","cost":50000,"effect":"完美領域展開"},
+{"id":"S07","name":"現實扭曲","grade":"S","cost":53000,"effect":"改變局部世界規則"},
+{"id":"S08","name":"時間操控","grade":"S","cost":56000,"effect":"大範圍時間操控"},
+{"id":"S09","name":"空間支配","grade":"S","cost":59000,"effect":"空間傳送與支配"},
+{"id":"S10","name":"主神級權能","grade":"S","cost":62000,"effect":"接近主神級能力"}
+];
+
+function save() { localStorage.setItem(saveKey, JSON.stringify(S)); }
+function log(msg) { S.log.unshift(new Date().toLocaleTimeString() + ' ' + msg); if(S.log.length>40) S.log.pop(); save(); render(); }
+
+function render() {
+  document.getElementById('playerInfo').innerHTML = `<b>${S.name}</b> | 基因鎖: ${S.geneLock}階 | 血統: ${S.bloodline || '無'} | 已學技能: ${S.skills.length}`;
+  document.getElementById('stats').innerHTML = Object.entries(S.stats).map(([k,v]) => `<span class="stat"><span>${k.toUpperCase()}</span><b>${v}</b></span>`).join('');
+  document.getElementById('resources').innerHTML = `輪迴點數: <b style="color:gold">${S.points}</b> | HP: ${S.hp}/${S.maxHp} | MP: ${S.mp}/${S.maxMp}`;
+  document.getElementById('log').innerHTML = S.log.slice(0,20).join('<br>');
+
+  let acts = `<button onclick="addPoints(500)">完成試煉 (+500點)</button>`;
+  acts += `<button onclick="addPoints(2000)">高階試煉 (+2000點)</button>`;
+  acts += `<button onclick="resetGame()">重新開始</button>`;
+  document.getElementById('actions').innerHTML = acts;
+
+  renderSkills();
+
+  let gene = '';
+  if(S.geneLock < 1) gene += `<button onclick="breakGene(1)">突破一階 (800點)</button>`;
+  if(S.geneLock >=1 && S.geneLock <2) gene += `<button onclick="breakGene(2)">突破二階 (2500點)</button>`;
+  if(S.geneLock >=2 && S.geneLock <3) gene += `<button onclick="breakGene(3)">突破三階 (7000點)</button>`;
+  if(S.geneLock >=3 && S.geneLock <4) gene += `<button onclick="breakGene(4)">突破四階 (特殊)</button>`;
+  document.getElementById('geneActions').innerHTML = gene || '已達當前最高階';
+
+  const bloods = [
+    {name:'蝙蛛基因 (D)', cost:1500},
+    {name:'無下限初階 (C)', cost:3500},
+    {name:'賽亞人低階 (C)', cost:3000},
+    {name:'修真入門 (C)', cost:3500},
+    {name:'神速力初階 (C)', cost:3500},
+    {name:'氪星強化 (C)', cost:3200}
+  ];
+  document.getElementById('bloodlines').innerHTML = bloods.map(b => 
+    `<button onclick="buyBlood('${b.name}',${b.cost})">${b.name} - ${b.cost}點</button>`
+  ).join(' ');
+}
+
+function renderSkills() {
+  const grade = document.getElementById('gradeFilter').value;
+  const search = document.getElementById('search').value.toLowerCase();
+  let filtered = SKILLS.filter(s => 
+    (!grade || s.grade === grade) && 
+    (!search || s.name.toLowerCase().includes(search))
+  );
+  document.getElementById('skillGrid').innerHTML = filtered.map(s => {
+    const owned = S.skills.includes(s.id);
+    return `<div class="skill-card ${s.grade}">
+      <b>${s.grade} ${s.name}</b><br>
+      <small>${s.effect}</small><br>
+      <button ${owned?'disabled':''} onclick="buySkill('${s.id}',${s.cost})">${owned?'已學習':s.cost+'點'}</button>
+    </div>`;
+  }).join('');
+}
+
+function buySkill(id, cost) {
+  if(S.skills.includes(id)) return alert('已學習');
+  if(S.points < cost) return alert('點數不足');
+  S.points -= cost;
+  S.skills.push(id);
+  const sk = SKILLS.find(x=>x.id===id);
+  log(`學習技能：${sk.grade}級 ${sk.name}`);
+  save(); render();
+}
+
+function buyBlood(name, cost) {
+  if(S.points < cost) return alert('點數不足');
+  S.points -= cost;
+  S.bloodline = name;
+  log(`兌換血統：${name}`);
+  save(); render();
+}
+
+function breakGene(level) {
+  const costs = {1:800, 2:2500, 3:7000, 4:20000};
+  const cost = costs[level] || 999999;
+  if(S.points >= cost) {
+    S.points -= cost;
+    S.geneLock = level;
+    log(`強制突破基因鎖 ${level}階成功！`);
+  } else if(confirm('點數不足，嘗試自然突破？（有失敗風險）')) {
+    if(Math.random() > 0.35) {
+      S.geneLock = level;
+      log(`自然突破基因鎖 ${level}階成功！發擮率更高。`);
+    } else {
+      S.hp = Math.max(1, S.hp - 15);
+      log('自然突破失敗，受到傷害。');
+    }
+  }
+  save(); render();
+}
+
+function addPoints(n) {
+  S.points += n;
+  log(`獲得 ${n} 輪迴點數。`);
+  save(); render();
+}
+
+function resetGame() {
+  if(confirm('重新開始？')) {
+    localStorage.removeItem(saveKey);
+    location.reload();
+  }
+}
+
+document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('skillsTab').style.display = btn.dataset.tab === 'skills' ? 'block' : 'none';
+    document.getElementById('bloodTab').style.display = btn.dataset.tab === 'blood' ? 'block' : 'none';
+    document.getElementById('geneTab').style.display = btn.dataset.tab === 'gene' ? 'block' : 'none';
+  };
+});
+document.getElementById('gradeFilter').onchange = renderSkills;
+document.getElementById('search').oninput = renderSkills;
+
+render();
+</script>
+</body>
+</html>
